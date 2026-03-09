@@ -22,7 +22,8 @@ type GithubSearchCodeResult struct {
 }
 
 type GithubGetFileRawContentParams struct {
-	HtmlUrl string
+	HtmlUrl     string
+	MaxFileSize int64
 }
 
 type GithubGetFileRawContentResult struct {

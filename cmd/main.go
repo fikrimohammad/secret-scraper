@@ -1,54 +1,30 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
-	"github.com/fikrimohammad/secret-scraper/config"
-	scraperresthandler "github.com/fikrimohammad/secret-scraper/handler/scraper/rest"
-	configstaticrepository "github.com/fikrimohammad/secret-scraper/repository/config/static"
-	githubclientrepository "github.com/fikrimohammad/secret-scraper/repository/github/client"
-	scraperusecase "github.com/fikrimohammad/secret-scraper/usecase/scraper"
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/logger"
-	"github.com/gofiber/fiber/v3/middleware/recover"
 )
 
 func main() {
-	cfg, err := config.Init()
-	if err != nil {
-		log.Fatalf("failed to init config: %v", err)
+	if len(os.Args) < 2 {
+		printUsage()
+		os.Exit(1)
 	}
 
-	var (
-		githubClientRepository = githubclientrepository.New(cfg)
-		configStaticRepository = configstaticrepository.New(cfg)
-		scraperUseCase         = scraperusecase.New(configStaticRepository, githubClientRepository)
-		scraperRestHandler     = scraperresthandler.New(scraperUseCase)
-	)
+	switch os.Args[1] {
+	case "serve":
+		runServe()
+	case "scrape":
+		runScrape(os.Args[2:])
+	default:
+		printUsage()
+		os.Exit(1)
+	}
+}
 
-	app := fiber.New(fiber.Config{
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
-	})
-
-	app.Use(recover.New())
-	app.Use(logger.New())
-	app.Post("/v1/scraper/scrape_secret", scraperRestHandler.ScrapeSecret)
-
-	go func() {
-		if err := app.Listen(":3000"); err != nil {
-			log.Panic(err)
-		}
-	}()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
-
-	app.Shutdown()
-	log.Println("successfully shutting down app")
+func printUsage() {
+	fmt.Fprintf(os.Stderr, "Usage: secret-scraper <command>\n\n")
+	fmt.Fprintf(os.Stderr, "Commands:\n")
+	fmt.Fprintf(os.Stderr, "  serve    Start the HTTP server\n")
+	fmt.Fprintf(os.Stderr, "  scrape   Run a one-shot secret scrape\n")
 }

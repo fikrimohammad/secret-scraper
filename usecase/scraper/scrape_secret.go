@@ -1,13 +1,21 @@
 package scraper
 
 import (
+	"bufio"
 	"context"
 	"log"
 	"regexp"
+	"strings"
+	"sync"
 
 	"github.com/fikrimohammad/secret-scraper/model"
 	"github.com/fikrimohammad/secret-scraper/repository"
 	"github.com/fikrimohammad/secret-scraper/usecase"
+)
+
+const (
+	maxFileSize    int64 = 0 // 0 = no limit
+	maxConcurrency       = 5
 )
 
 func (u *useCase) ScrapeSecret(ctx context.Context, params usecase.ScrapeSecretParams) (*usecase.ScrapeSecretResult, error) {
@@ -19,9 +27,16 @@ func (u *useCase) ScrapeSecret(ctx context.Context, params usecase.ScrapeSecretP
 		return nil, err
 	}
 
+	secretPattern, err := regexp.Compile(scraperConfig.SecretRegexPattern)
+	if err != nil {
+		return nil, err
+	}
+
 	var (
+		mu         sync.Mutex
 		secretsMap = map[string]model.Secret{}
 		secrets    = make([]model.Secret, 0)
+		sem        = make(chan struct{}, maxConcurrency)
 	)
 
 	for currentIter := range params.MaxIterations {
@@ -38,37 +53,53 @@ func (u *useCase) ScrapeSecret(ctx context.Context, params usecase.ScrapeSecretP
 			break
 		}
 
+		var wg sync.WaitGroup
+
 		for _, githubCode := range searchCodeResult.Codes {
-			rawFileContentResult, err := u.githubClientRepository.GetFileRawContent(ctx, repository.GithubGetFileRawContentParams{
-				HtmlUrl: githubCode.HtmlUrl,
-			})
-			if err != nil {
-				return nil, err
-			}
+			wg.Add(1)
+			sem <- struct{}{} // acquire semaphore
 
-			secretPattern, err := regexp.Compile(scraperConfig.SecretRegexPattern)
-			if err != nil {
-				return nil, err
-			}
+			go func(code model.GithubCode) {
+				defer wg.Done()
+				defer func() { <-sem }() // release semaphore
 
-			for _, match := range secretPattern.FindAll([]byte(rawFileContentResult.RawFileContent), -1) {
-				rawSecret := string(match)
-				if _, ok := secretsMap[rawSecret]; ok {
-					continue
+				rawFileContentResult, err := u.githubClientRepository.GetFileRawContent(ctx, repository.GithubGetFileRawContentParams{
+					HtmlUrl:     code.HtmlUrl,
+					MaxFileSize: maxFileSize,
+				})
+				if err != nil {
+					log.Printf("skipping file %s: %v", code.HtmlUrl, err)
+					return
 				}
 
-				log.Printf("matched secret: %s", rawSecret)
+				// Scan line-by-line to avoid loading entire content into regex engine
+				scanner := bufio.NewScanner(strings.NewReader(rawFileContentResult.RawFileContent))
+				mu.Lock()
+				defer mu.Unlock()
 
-				s := model.Secret{
-					Provider: params.SecretProvider,
-					Type:     params.SecretType,
-					Value:    rawSecret,
+				for scanner.Scan() {
+					line := scanner.Text()
+					for _, match := range secretPattern.FindAllString(line, -1) {
+						if _, ok := secretsMap[match]; ok {
+							continue
+						}
+
+						log.Printf("matched secret: %s", match)
+
+						s := model.Secret{
+							Provider: params.SecretProvider,
+							Type:     params.SecretType,
+							Value:    match,
+						}
+
+						secrets = append(secrets, s)
+						secretsMap[match] = s
+					}
 				}
-
-				secrets = append(secrets, s)
-				secretsMap[rawSecret] = s
-			}
+			}(githubCode)
 		}
+
+		wg.Wait()
 	}
 
 	result := &usecase.ScrapeSecretResult{
