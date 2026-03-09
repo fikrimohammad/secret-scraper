@@ -9,3 +9,7 @@ secret_scraper:
     secret_type: anthropic_admin_key
     secret_query_keyword: sk-ant-admin01
     secret_regex_pattern: sk-ant-admin01-[a-zA-Z0-9\-_]{90,}AA
+  - secret_provider: openai
+    secret_type: openai_api_key
+    secret_query_keyword: sk-proj-
+    secret_regex_pattern: sk-proj-[a-zA-Z0-9_-]{50,82}T3BlbkFJ[a-zA-Z0-9_-]{50,82}
