@@ -14,6 +14,7 @@ import (
 	githubclientrepository "github.com/fikrimohammad/secret-scraper/repository/github/client"
 	"github.com/fikrimohammad/secret-scraper/usecase"
 	scraperusecase "github.com/fikrimohammad/secret-scraper/usecase/scraper"
+	"github.com/fikrimohammad/secret-scraper/validator"
 )
 
 func runScrape(args []string) {
@@ -23,6 +24,7 @@ func runScrape(args []string) {
 	iterations := fs.Int("iterations", 0, "Max search iterations (0 = unlimited)")
 	limit := fs.Int("limit", 0, "Max results per iteration (0 = max, 100)")
 	all := fs.Bool("all", false, "Scrape all configured provider/type combinations")
+	test := fs.Bool("test", false, "Test if scraped keys are valid by calling provider APIs")
 
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: secret-scraper scrape [flags]\n\nFlags:\n")
@@ -83,6 +85,11 @@ func runScrape(args []string) {
 
 		allSecrets = append(allSecrets, result.Data...)
 		log.Printf("found %d secrets for %s/%s", len(result.Data), t.provider, t.secretType)
+	}
+
+	if *test && len(allSecrets) > 0 {
+		log.Printf("testing %d scraped keys...", len(allSecrets))
+		validator.TestSecrets(context.Background(), allSecrets)
 	}
 
 	output, err := json.MarshalIndent(map[string]any{"data": allSecrets}, "", "  ")

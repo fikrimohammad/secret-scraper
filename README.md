@@ -112,6 +112,7 @@ go run ./cmd/ scrape -provider anthropic -type anthropic_api_key -iterations 5 -
 | `-all` | `false` | Scrape all configured provider/type combinations |
 | `-iterations` | `0` | Max search pages to scan (`0` = unlimited, until no more results) |
 | `-limit` | `0` | Results per search page (`0` = max, which is 100) |
+| `-test` | `false` | Validate scraped keys against provider APIs |
 
 Output is JSON printed to stdout:
 
@@ -121,7 +122,8 @@ Output is JSON printed to stdout:
     {
       "provider": "anthropic",
       "type": "anthropic_api_key",
-      "value": "sk-ant-api03-..."
+      "value": "sk-ant-api03-...",
+      "status": "valid"
     }
   ]
 }
