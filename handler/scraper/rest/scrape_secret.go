@@ -26,14 +26,6 @@ func (ho *handlerObject) ScrapeSecret(c fiber.Ctx) error {
 		return restutil.JsonApiError(c, http.StatusBadRequest, errors.New("secret type is required"))
 	}
 
-	if requestBody.MaxLimitPerIterations == 0 {
-		requestBody.MaxLimitPerIterations = 10
-	}
-
-	if requestBody.MaxIterations == 0 {
-		requestBody.MaxIterations = 10
-	}
-
 	data, err := ho.scraperUseCase.ScrapeSecret(c.Context(), usecase.ScrapeSecretParams{
 		SecretProvider:  model.SecretProvider(requestBody.SecretProvider),
 		SecretType:      model.SecretType(requestBody.SecretType),

@@ -21,7 +21,7 @@ func runScrape(args []string) {
 	provider := fs.String("provider", "", "Secret provider (e.g., anthropic, openai)")
 	secretType := fs.String("type", "", "Secret type (e.g., anthropic_api_key)")
 	iterations := fs.Int("iterations", 0, "Max search iterations (0 = unlimited)")
-	limit := fs.Int("limit", 10, "Max results per iteration")
+	limit := fs.Int("limit", 0, "Max results per iteration (0 = max, 100)")
 	all := fs.Bool("all", false, "Scrape all configured provider/type combinations")
 
 	fs.Usage = func() {

@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	maxFileSize    int64 = 0 // 0 = no limit
-	maxConcurrency       = 5
+	maxFileSize        int64 = 0   // 0 = no limit
+	maxConcurrency           = 5
+	defaultLimitPerIter      = 100 // GitHub's max per page
 )
 
 func (u *useCase) ScrapeSecret(ctx context.Context, params usecase.ScrapeSecretParams) (*usecase.ScrapeSecretResult, error) {
@@ -39,10 +40,15 @@ func (u *useCase) ScrapeSecret(ctx context.Context, params usecase.ScrapeSecretP
 		sem        = make(chan struct{}, maxConcurrency)
 	)
 
+	limitPerIter := params.MaxLimitPerIter
+	if limitPerIter <= 0 {
+		limitPerIter = defaultLimitPerIter
+	}
+
 	for currentIter := 0; params.MaxIterations == 0 || currentIter < params.MaxIterations; currentIter++ {
 		searchCodeResult, err := u.githubClientRepository.SearchCode(ctx, repository.GithubSearchCodeParams{
 			Query: scraperConfig.SecretQueryKeyword,
-			Limit: params.MaxLimitPerIter,
+			Limit: limitPerIter,
 			Page:  currentIter + 1,
 		})
 		if err != nil {

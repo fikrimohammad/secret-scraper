@@ -90,11 +90,14 @@ The server starts on port `3000`.
 Run a one-shot scrape directly from the command line:
 
 ```bash
-# Using go run
-go run ./cmd/main.go scrape -provider anthropic -type anthropic_api_key
+# Scrape everything (unlimited pages, 100 results per page)
+go run ./cmd/ scrape -all
+
+# Single provider
+go run ./cmd/ scrape -provider anthropic -type anthropic_api_key
 
 # With custom pagination
-go run ./cmd/main.go scrape -provider anthropic -type anthropic_api_key -iterations 5 -limit 20
+go run ./cmd/ scrape -provider anthropic -type anthropic_api_key -iterations 5 -limit 20
 
 # Using the built binary
 ./bin/secret-scraper scrape -provider openai -type openai_api_key
@@ -106,8 +109,9 @@ go run ./cmd/main.go scrape -provider anthropic -type anthropic_api_key -iterati
 |------|---------|-------------|
 | `-provider` | required | Secret provider (e.g. `anthropic`, `openai`) |
 | `-type` | required | Secret type (e.g. `anthropic_api_key`) |
-| `-iterations` | `10` | Max number of search pages to scan |
-| `-limit` | `10` | Max results per search page |
+| `-all` | `false` | Scrape all configured provider/type combinations |
+| `-iterations` | `0` | Max search pages to scan (`0` = unlimited, until no more results) |
+| `-limit` | `0` | Results per search page (`0` = max, which is 100) |
 
 Output is JSON printed to stdout:
 
@@ -142,8 +146,8 @@ Output is JSON printed to stdout:
 |-------|------|---------|-------------|
 | `secret_provider` | string | required | Provider name (e.g. `anthropic`) |
 | `secret_type` | string | required | Secret type (e.g. `anthropic_api_key`) |
-| `max_limit_per_iterations` | int | 10 | Results per GitHub search page |
-| `max_iterations` | int | 10 | Number of pages to scan |
+| `max_limit_per_iterations` | int | 0 | Results per GitHub search page (`0` = max, 100) |
+| `max_iterations` | int | 0 | Number of pages to scan (`0` = unlimited) |
 
 **Response:**
 
