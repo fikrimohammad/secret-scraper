@@ -39,7 +39,7 @@ func (u *useCase) ScrapeSecret(ctx context.Context, params usecase.ScrapeSecretP
 		sem        = make(chan struct{}, maxConcurrency)
 	)
 
-	for currentIter := range params.MaxIterations {
+	for currentIter := 0; params.MaxIterations == 0 || currentIter < params.MaxIterations; currentIter++ {
 		searchCodeResult, err := u.githubClientRepository.SearchCode(ctx, repository.GithubSearchCodeParams{
 			Query: scraperConfig.SecretQueryKeyword,
 			Limit: params.MaxLimitPerIter,
