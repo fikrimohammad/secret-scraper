@@ -13,13 +13,13 @@ build:
 	go build -o $(BUILD_DIR)/$(APP_NAME) $(MAIN)
 	@echo "Binary: $(BUILD_DIR)/$(APP_NAME)"
 
-## Run without building
+## Run HTTP server without building
 run:
-	go run $(MAIN)
+	go run $(MAIN) serve
 
-## Build and run
+## Build and run HTTP server
 dev: build
-	./$(BUILD_DIR)/$(APP_NAME)
+	./$(BUILD_DIR)/$(APP_NAME) serve
 
 ## Run tests
 test:
